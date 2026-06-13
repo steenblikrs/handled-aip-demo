@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Handled | Aging in Place - Mobility Check + Family Dashboard (prototype)</title>
+<style>
+  :root{
+    --ink:#1d2230; --paper:#f7f6f2; --card:#ffffff; --line:#e3e0d8;
+    --accent:#2f6f5e; --accent-soft:#e4efeb;
+    --band-green:#2f6f5e; --band-yellow:#b8860b; --band-orange:#c05621; --band-red:#b23a3a;
+    --flag:#b23a3a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Helvetica,Arial,system-ui,sans-serif;background:var(--paper);color:var(--ink);
+       font-size:19px;line-height:1.45;min-height:100vh}
+  header{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  header h1{font-size:22px;letter-spacing:.4px}
+  header .glyph{font-weight:700}
+  header nav{margin-left:auto;display:flex;gap:8px}
+  header nav button{font-size:16px;padding:8px 16px;border:1px solid var(--line);background:var(--card);
+                    border-radius:20px;cursor:pointer}
+  header nav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  main{max-width:760px;margin:0 auto;padding:26px 18px 80px}
+  .disclaimer{font-size:14px;color:#6b6f7a;border:1px solid var(--line);border-radius:10px;
+              padding:10px 14px;margin-bottom:22px;background:var(--card)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px;margin-bottom:18px}
+  .qnum{font-size:15px;color:#8a8e98;margin-bottom:6px}
+  .domain-tag{display:inline-block;font-size:14px;background:var(--accent-soft);color:var(--accent);
+              border-radius:12px;padding:2px 12px;margin-bottom:14px}
+  .qtext{font-size:24px;font-weight:600;margin-bottom:22px}
+  .answers{display:flex;flex-direction:column;gap:10px}
+  .answers button{font-size:19px;text-align:left;padding:14px 18px;border:1.5px solid var(--line);
+                  border-radius:10px;background:var(--paper);cursor:pointer;transition:border-color .1s}
+  .answers button:hover{border-color:var(--accent)}
+  .answers button.selected{border-color:var(--accent);background:var(--accent-soft)}
+  .controls{display:flex;justify-content:space-between;margin-top:24px}
+  .controls button{font-size:17px;padding:10px 22px;border-radius:10px;border:1px solid var(--line);
+                   background:var(--card);cursor:pointer}
+  .controls button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .controls button:disabled{opacity:.4;cursor:default}
+  .progress{height:8px;background:var(--line);border-radius:4px;margin-bottom:26px;overflow:hidden}
+  .progress div{height:100%;background:var(--accent);border-radius:4px;transition:width .2s}
+  .scorebig{font-size:64px;font-weight:700;line-height:1}
+  .band{font-size:21px;font-weight:600;margin:6px 0 2px}
+  .band-note{font-size:16px;color:#6b6f7a}
+  .flag{color:var(--flag);font-weight:600;font-size:17px;margin-top:10px}
+  .domain-row{display:flex;align-items:center;gap:12px;margin:8px 0;font-size:16px}
+  .domain-row .label{width:230px;flex-shrink:0}
+  .domain-row .bar{flex:1;height:14px;background:var(--line);border-radius:7px;overflow:hidden;position:relative}
+  .domain-row .bar > .fill{height:100%;border-radius:7px;background:var(--accent)}
+  .domain-row .bar > .prev{position:absolute;top:-3px;width:2px;height:20px;background:#8a8e98}
+  .domain-row .val{width:46px;text-align:right;font-variant-numeric:tabular-nums}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:16px;color:#6b6f7a;margin-bottom:5px}
+  .field input,.field select,.field textarea{font-size:18px;padding:10px 12px;border:1.5px solid var(--line);
+       border-radius:8px;width:100%;background:var(--card);font-family:inherit}
+  table{width:100%;border-collapse:collapse;font-size:16px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{font-size:14px;color:#8a8e98;text-transform:uppercase;letter-spacing:.5px}
+  .pill{display:inline-block;border-radius:10px;padding:1px 10px;font-size:14px;color:#fff}
+  .alert-item{border-left:4px solid var(--flag);padding:8px 14px;margin:8px 0;background:#faf3f3;
+              border-radius:0 8px 8px 0;font-size:16px}
+  .muted{color:#8a8e98;font-size:15px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .actions button{font-size:15px;padding:8px 16px;border-radius:8px;border:1px solid var(--line);
+                  background:var(--card);cursor:pointer}
+  svg text{font-family:inherit}
+  h2{font-size:20px;margin-bottom:14px}
+  h3{font-size:17px;margin:18px 0 8px}
+  /* P2: Supabase auth gate */
+  .authwrap{max-width:420px;margin:40px auto}
+  .authwrap .tabrow{display:flex;gap:8px;margin-bottom:16px}
+  .authwrap .tabrow button{flex:1;font-size:15px;padding:9px;border:1px solid var(--line);
+    background:var(--card);border-radius:8px;cursor:pointer}
+  .authwrap .tabrow button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .authmsg{font-size:14px;margin-top:10px}
+  .authmsg.err{color:var(--flag)} .authmsg.ok{color:var(--accent)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header>
+  <h1><img src="handled_logo.png" alt="Handled" style="height:30px;vertical-align:-6px;margin-right:2px"> handled</h1>
+  <span class="muted">Aging in Place &middot; Family Support (prototype)</span>
+  <nav>
+    <button id="navAssess" class="active" onclick="show('assess')">Mobility check</button>
+    <button id="navDash" onclick="show('dash')">Family dashboard</button>
+    <button onclick="signOut()">Sign out</button>
+  </nav>
+</header>
+<main>
+  <div class="disclaimer">This is an informational self-assessment and family-support tool. It is
+  not a medical device and does not provide a clinical diagnosis. If you are worried about falls
+  or daily safety, talk with a clinician or occupational therapist.</div>
+
+  <section id="assess"></section>
+  <section id="dash" style="display:none"></section>
+</main>
+
+<script>
+"use strict";
+/* ============ Question bank: 6 domains, weights per spec 2026-06-05 ============
+   Every answer maps 0-4 (0 = highest risk / full dependence, 4 = full independence). */
+const DOMAINS = [
+  {key:"gait",   name:"Basic mobility & gait",      weight:.25},
+  {key:"balance",name:"Balance & fall history",     weight:.20},
+  {key:"adl",    name:"Daily self-care (ADL)",      weight:.20},
+  {key:"iadl",   name:"Household tasks (IADL)",     weight:.15},
+  {key:"devices",name:"Assistive devices & support",weight:.10},
+  {key:"home",   name:"Home environment & hazards", weight:.10},
+];
+const STD = ["I cannot do this at all","Only with someone helping me","With a lot of difficulty or equipment","With a little difficulty","Easily, on my own"];
+const QUESTIONS = [
+ {d:"gait", t:"How far can you comfortably walk at one time?",
+  a:["I cannot walk on my own","Only around one room","Around the house","Around the block","A mile or more"]},
+ {d:"gait", t:"How is getting up from a chair without using your arms?", a:STD},
+ {d:"gait", t:"How is climbing a flight of stairs?", a:STD},
+ {d:"gait", t:"Compared with a year ago, how is your walking speed?",
+  a:["I can no longer walk","Much slower","Somewhat slower","About the same","As fast or faster"]},
+ {d:"balance", t:"Do you feel unsteady when standing or walking?",
+  a:["Always","Often","Sometimes","Rarely","Never"]},
+ {d:"balance", t:"How many times have you fallen in the last 6 months?",
+  a:["3 or more","Twice","Once","A near-fall but no fall","None"], flagBelow:3, flag:"recent_fall",
+  flagLabel:"Fall in the last 6 months"},
+ {d:"balance", t:"Do you worry about falling?",
+  a:["So much I avoid activities","Often","Sometimes","Rarely","Not at all"], flagBelow:2, flag:"fall_risk",
+  flagLabel:"Significant fear of falling"},
+ {d:"balance", t:"Is your unsteadiness new, or getting worse lately?",
+  a:["Much worse lately","Somewhat worse","About the same","Improving","I am steady"], flagBelow:2, flag:"fall_risk",
+  flagLabel:"New or worsening unsteadiness"},
+ {d:"adl", t:"Bathing or showering?", a:STD, esc:true},
+ {d:"adl", t:"Dressing, including shoes and buttons?", a:STD, esc:true},
+ {d:"adl", t:"Using the toilet, day and night?", a:STD, esc:true},
+ {d:"adl", t:"Moving between bed and chair (transferring)?", a:STD, esc:true},
+ {d:"iadl", t:"Shopping for groceries?", a:STD},
+ {d:"iadl", t:"Preparing your own meals?", a:STD},
+ {d:"iadl", t:"Managing your medications on schedule?", a:STD},
+ {d:"iadl", t:"Handling money and bills?", a:STD},
+ {d:"devices", t:"Do you use a cane, walker, or wheelchair?",
+  a:["Wheelchair full-time","Wheelchair sometimes / walker always","Walker sometimes","Cane only","No device"]},
+ {d:"devices", t:"Do you need another person nearby to get through the day safely?",
+  a:["All the time","Most of the day","A few times a day","Occasionally","No"]},
+ {d:"devices", t:"Do you rely on grab bars or furniture to steady yourself?",
+  a:["Constantly","In most rooms","In the bathroom only","Rarely","Never"]},
+ {d:"home", t:"Do the stairs you must use have sturdy rails?",
+  a:["Stairs with no rails","One rail, poor condition","One rail, good","Rails both sides","No stairs to use"]},
+ {d:"home", t:"Loose rugs, cords, or clutter on your floors?",
+  a:["Everywhere","In most rooms","In some rooms","Very little","None"]},
+ {d:"home", t:"Lighting at night between bed and bathroom?",
+  a:["None","Poor","Fair","Good","Bright / automatic"]},
+ {d:"home", t:"Bathroom safety (grab bars, non-slip, walk-in access)?",
+  a:["Nothing in place","One small aid","Some aids","Mostly equipped","Fully equipped"]},
+];
+const BANDS = [
+  {min:80,label:"Independent",color:"var(--band-green)",
+   note:"Mobility supports aging in place. Re-check in about 6 months."},
+  {min:60,label:"Mild support",color:"var(--band-yellow)",
+   note:"Some tasks need help or adaptation. Re-check in about 3 months and review home hazards."},
+  {min:40,label:"Moderate support",color:"var(--band-orange)",
+   note:"Meaningful limitations. We suggest a professional functional assessment and a home-safety review."},
+  {min:0,label:"High support",color:"var(--band-red)",
+   note:"Significant limitations. Please consult a clinician or occupational therapist promptly."},
+];
+const LS_KEY = "handled_aip_records_v1";
+
+/* ============ state ============ */
+let mode=null, person="", supporter="", idx=0;
+let answers = new Array(QUESTIONS.length).fill(null);
+
+const load = () => JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+const save = recs => localStorage.setItem(LS_KEY, JSON.stringify(recs));
+
+function show(which){
+  document.getElementById("assess").style.display = which==="assess" ? "" : "none";
+  document.getElementById("dash").style.display   = which==="dash"   ? "" : "none";
+  document.getElementById("navAssess").classList.toggle("active", which==="assess");
+  document.getElementById("navDash").classList.toggle("active", which==="dash");
+  if (which==="dash") renderDash();
+}
+
+/* ============ questionnaire flow ============ */
+function renderIntro(){
+  document.getElementById("assess").innerHTML = `
+  <div class="card">
+    <h2>Mobility check</h2>
+    <p style="margin-bottom:18px">23 short questions, about 5&ndash;8 minutes. You can stop and
+    come back; your place is saved on this device.</p>
+    <div class="field"><label>Who is this check about?</label>
+      <input id="pName" placeholder="Name (e.g. Dad, Janice)" value="${person}"></div>
+    <div class="field"><label>Who is answering?</label>
+      <select id="pMode">
+        <option value="self">The person themselves (self)</option>
+        <option value="proxy">A family member answering for them (proxy)</option>
+      </select></div>
+    <div class="field" id="supWrap" style="display:none"><label>Family member's name</label>
+      <input id="sName" placeholder="Your name"></div>
+    <div class="controls"><span></span>
+      <button class="primary" onclick="startAssess()">Start</button></div>
+  </div>`;
+  document.getElementById("pMode").onchange = e =>
+    document.getElementById("supWrap").style.display = e.target.value==="proxy" ? "" : "none";
+}
+
+function startAssess(){
+  person = document.getElementById("pName").value.trim();
+  if(!person){ document.getElementById("pName").focus(); return; }
+  mode = document.getElementById("pMode").value;
+  supporter = mode==="proxy" ? (document.getElementById("sName").value.trim()||"family member") : "";
+  idx = 0; answers = new Array(QUESTIONS.length).fill(null);
+  const draft = load().find(r=>r.draft && r.person===person);
+  if (draft){ answers = draft.answers; idx = answers.findIndex(a=>a===null); if(idx<0) idx=QUESTIONS.length-1; }
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const q = QUESTIONS[idx];
+  const dom = DOMAINS.find(d=>d.key===q.d);
+  const subj = mode==="proxy" ? person : "you";
+  document.getElementById("assess").innerHTML = `
+  <div class="progress"><div style="width:${(idx/QUESTIONS.length)*100}%"></div></div>
+  <div class="card">
+    <div class="qnum">Question ${idx+1} of ${QUESTIONS.length}</div>
+    <div class="domain-tag">${dom.name}</div>
+    <div class="qtext">${mode==="proxy" ? q.t.replace(/\byou\b/g, person).replace(/\byour\b/g, person+"'s") : q.t}</div>
+    <div class="answers">${q.a.map((a,i)=>`
+      <button class="${answers[idx]===i?'selected':''}" onclick="answer(${i})">${a}</button>`).join("")}
+    </div>
+    <div class="controls">
+      <button onclick="prev()" ${idx===0?"disabled":""}>Back</button>
+      <button onclick="pause()">Save &amp; finish later</button>
+    </div>
+  </div>`;
+}
+
+function answer(i){
+  answers[idx] = i;
+  if (idx < QUESTIONS.length-1){ idx++; renderQuestion(); }
+  else finish();
+}
+function prev(){ if(idx>0){ idx--; renderQuestion(); } }
+function pause(){
+  const recs = load().filter(r=>!(r.draft && r.person===person));
+  recs.push({draft:true, person, answers});
+  save(recs);
+  renderIntro();
+}
+
+/* ============ scoring (spec section 1.2) ============ */
+function scoreRecord(ans){
+  const domains = {};
+  let weighted = 0, wsum = 0;
+  for (const d of DOMAINS){
+    const qIdx = QUESTIONS.map((q,i)=>q.d===d.key?i:-1).filter(i=>i>=0);
+    const got = qIdx.filter(i=>ans[i]!==null);
+    const sub = got.length ? (got.reduce((s,i)=>s+ans[i],0) / (got.length*4)) * 100 : null;
+    domains[d.key] = sub===null ? null : Math.round(sub);
+    // Composite = weighted mean over ANSWERED domains only (weights renormalized
+    // by wsum). An unanswered domain no longer contributes an optimistic 100, so
+    // a partial check can never read healthier than the answers support. This is
+    // a safety tool: hiding risk via optimistic defaults is the failure to avoid.
+    if (sub !== null){ weighted += sub * d.weight; wsum += d.weight; }
+  }
+  const composite = wsum ? Math.round(weighted / wsum) : null;
+  const coverage = Math.round(100 * ans.filter(a=>a!==null).length / ans.length);
+  const flags = [];
+  QUESTIONS.forEach((q,i)=>{
+    if (q.flag && ans[i]!==null && ans[i] < q.flagBelow &&
+        !flags.find(f=>f.key===q.flag)) flags.push({key:q.flag,label:q.flagLabel});
+  });
+  return {composite, domains, coverage, flags};
+}
+const bandFor = s => BANDS.find(b=>s>=b.min);
+// Flags that are strong risk signals on their own -- a good composite should not
+// let these read as "all clear" (a recent fall predicts the next one regardless
+// of the overall number).
+const CRITICAL_FLAGS = ["recent_fall","adl_escalation"];
+
+async function finish(){
+  const sc = scoreRecord(answers);
+  // ADL-escalation flag needs the PRIOR record (from the cloud history) for comparison.
+  const history = (await cloudLoadRecords()).filter(r=>r.person===person);
+  const prevRec = history.length ? history[history.length-1] : null;
+  if (prevRec){
+    const adlIdx = QUESTIONS.map((q,i)=>q.esc?i:-1).filter(i=>i>=0);
+    for (const i of adlIdx){
+      if (prevRec.answers[i]!==null && prevRec.answers[i]>=3 && answers[i]!==null && answers[i]<=1){
+        sc.flags.push({key:"adl_escalation",
+          label:"Now needs help with a self-care task that was previously independent"});
+        break;
+      }
+    }
+  }
+  const rec = {draft:false, person, mode, supporter, ts:new Date().toISOString(),
+               answers:[...answers], ...sc, version:"proto-1"};
+  try { await cloudSaveAssessment(person, sc, mode, supporter, [...answers]); }
+  catch(e){ console.warn("cloud save failed", e); }
+  // clear the now-completed local draft for this person.
+  save(load().filter(r=>!(r.draft && r.person===person)));
+  renderResult(rec, prevRec);
+}
+
+function renderResult(rec, prevRec){
+  const band = bandFor(rec.composite);
+  const criticalFlag = rec.flags.some(f=>CRITICAL_FLAGS.includes(f.key));
+  document.getElementById("assess").innerHTML = `
+  <div class="card" style="text-align:center">
+    <div class="muted">${rec.person} &middot; ${new Date(rec.ts).toLocaleDateString()} &middot;
+      ${rec.mode==="proxy" ? "answered by "+rec.supporter : "self-reported"}</div>
+    <div class="scorebig" style="color:${band.color}">${rec.composite}</div>
+    <div class="band" style="color:${band.color}">${band.label}</div>
+    <div class="band-note">${band.note}</div>
+    ${rec.coverage<100?`<div class="muted" style="margin-top:8px">Based on ${rec.coverage}% of questions answered &mdash; the score reflects only the domains that were completed.</div>`:""}
+    ${criticalFlag && rec.composite>=60?`<div class="flag" style="margin-top:12px">&#9873; A recent fall or new loss of self-care is a strong risk signal on its own, even with a good overall score. Please don't wait on the number.</div>`:""}
+    ${rec.flags.map(f=>`<div class="flag">&#9873; ${f.label}</div>`).join("")}
+    ${rec.flags.length?`<div class="muted" style="margin-top:6px">Flags appear regardless of the overall score and are worth a conversation with a clinician.</div>`:""}
+  </div>
+  <div class="card">
+    <h2>Domain breakdown</h2>
+    ${DOMAINS.map(d=>domainRow(d, rec, prevRec)).join("")}
+    <div class="actions">
+      <button onclick="show('dash')">Open family dashboard</button>
+      <button onclick="renderIntro()">New check</button>
+    </div>
+  </div>`;
+}
+
+function domainRow(d, rec, prevRec){
+  const v = rec.domains[d.key];
+  const pv = prevRec ? prevRec.domains?.[d.key] : null;
+  return `<div class="domain-row">
+    <span class="label">${d.name} <span class="muted">(${Math.round(d.weight*100)}%)</span></span>
+    <span class="bar"><span class="fill" style="width:${v??0}%"></span>
+      ${pv!=null?`<span class="prev" style="left:${pv}%" title="previous: ${pv}"></span>`:""}</span>
+    <span class="val">${v??"-"}</span></div>`;
+}
+
+/* ============ dashboard ============ */
+async function renderDash(){
+  const recs = await cloudLoadRecords();   // completed assessments, household-scoped
+  const people = [...new Set(recs.map(r=>r.person))];
+  const el = document.getElementById("dash");
+  if (!people.length){
+    el.innerHTML = `<div class="card"><h2>Family dashboard</h2>
+      <p class="muted">No completed checks yet. Run a mobility check first.</p></div>`;
+    return;
+  }
+  el.innerHTML = people.map(p=>{
+    const hist = recs.filter(r=>r.person===p);
+    const latest = hist[hist.length-1];
+    const prev = hist.length>1 ? hist[hist.length-2] : null;
+    const band = bandFor(latest.composite);
+    const delta = prev ? latest.composite - prev.composite : null;
+    const alerts = [];
+    latest.flags.forEach(f=>alerts.push(f.label));
+    if (delta!==null && delta <= -10) alerts.push(`Score dropped ${-delta} points since the previous check`);
+    const nextDays = latest.composite>=80?180:latest.composite>=60?90:30;
+    const nextDue = new Date(new Date(latest.ts).getTime()+nextDays*864e5);
+    if (nextDue < new Date()) alerts.push(`Re-check overdue (was due ${nextDue.toLocaleDateString()})`);
+    return `<div class="card">
+      <h2>${p} <span class="pill" style="background:${band.color}">${latest.composite} &middot; ${band.label}</span></h2>
+      <div class="muted">Last checked ${new Date(latest.ts).toLocaleDateString()}
+        (${latest.mode==="proxy"?"by "+latest.supporter:"self"}) &middot;
+        next re-check ${nextDue.toLocaleDateString()}
+        ${delta!==null?` &middot; change ${delta>0?"+":""}${delta}`:""}</div>
+      ${alerts.length?`<h3>Alerts</h3>${alerts.map(a=>`<div class="alert-item">${a}</div>`).join("")}`:""}
+      ${hist.length>1?`<h3>Trend</h3>${trendSvg(hist)}`:""}
+      <h3>Latest domain breakdown</h3>
+      ${DOMAINS.map(d=>domainRow(d, latest, prev)).join("")}
+      <h3>History</h3>
+      <table><tr><th>Date</th><th>Score</th><th>Band</th><th>Answered by</th><th>Flags</th></tr>
+      ${hist.slice().reverse().map(r=>`<tr><td>${new Date(r.ts).toLocaleDateString()}</td>
+        <td>${r.composite}</td><td>${bandFor(r.composite).label}</td>
+        <td>${r.mode==="proxy"?r.supporter:"self"}</td>
+        <td>${r.flags.map(f=>f.label).join("; ")||"-"}</td></tr>`).join("")}</table>
+      <div class="actions">
+        <button onclick="exportPerson('${p.replace(/'/g,"\\'")}')">Export JSON</button>
+        <button onclick="printSummary()">Print summary for a doctor's visit</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function trendSvg(hist){
+  const W=640,H=160,P=30;
+  const xs = hist.map((_,i)=>P + i*(W-2*P)/Math.max(1,hist.length-1));
+  const ys = hist.map(r=>H-P - (r.composite/100)*(H-2*P));
+  const pts = xs.map((x,i)=>`${x},${ys[i]}`).join(" ");
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">
+    ${[0,40,60,80,100].map(v=>{const y=H-P-(v/100)*(H-2*P);
+      return `<line x1="${P}" y1="${y}" x2="${W-P}" y2="${y}" stroke="#e3e0d8"/>
+              <text x="2" y="${y+4}" font-size="11" fill="#8a8e98">${v}</text>`;}).join("")}
+    <polyline points="${pts}" fill="none" stroke="#2f6f5e" stroke-width="2.5"/>
+    ${xs.map((x,i)=>`<circle cx="${x}" cy="${ys[i]}" r="4" fill="#2f6f5e"/>
+      <text x="${x}" y="${H-8}" font-size="11" text-anchor="middle" fill="#8a8e98">
+        ${new Date(hist[i].ts).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</text>`).join("")}
+  </svg>`;
+}
+
+async function exportPerson(p){
+  const data = (await cloudLoadRecords()).filter(r=>r.person===p);
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `handled_mobility_${p.replace(/\s+/g,"_")}.json`;
+  a.click();
+}
+const printSummary = () => window.print();
+
+/* ============ P2: Supabase (auth + cloud assessments) ============
+   Per-household tenancy. The user signs in (email); their household scopes all
+   data via row-level security. Completed assessments live in Supabase; drafts
+   stay device-local (the load/save helpers above). */
+const SB_URL = "https://bwdczmxrtcwxvybryxxk.supabase.co";
+const SB_KEY = "sb_publishable_6OB_yn1XVt8P5K3L_lTUAg_RQ3LwI16";
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+let HH = null;  // current household id
+
+async function ensureHousehold(){
+  const { data: mem } = await sb.from("household_members").select("household_id").limit(1);
+  if (mem && mem.length){ HH = mem[0].household_id; return HH; }
+  const { data: hid, error } = await sb.rpc("create_household", { p_name: "My household" });
+  if (error) throw error;
+  HH = hid; return HH;
+}
+
+async function cloudEnsurePerson(name){
+  const { data: found } = await sb.from("people").select("id").eq("name", name).limit(1);
+  if (found && found.length) return found[0].id;
+  const { data: ins, error } = await sb.from("people").insert({ household_id: HH, name }).select("id").single();
+  if (error) throw error;
+  return ins.id;
+}
+
+async function cloudSaveAssessment(name, sc, m, sup, ans){
+  const pid = await cloudEnsurePerson(name);
+  const { error } = await sb.from("assessments").insert({
+    household_id: HH, person_id: pid, mode: m, answered_by: sup || null,
+    composite: sc.composite, coverage: sc.coverage, domains: sc.domains,
+    flags: sc.flags, answers: ans });
+  if (error) throw error;
+}
+
+// Load completed assessments (newest-anchored) joined to person names, shaped
+// like the legacy record objects the dashboard/result code expects.
+async function cloudLoadRecords(){
+  const { data, error } = await sb.from("assessments")
+    .select("mode, answered_by, composite, coverage, domains, flags, answers, taken_at, people(name)")
+    .order("taken_at", { ascending: true });
+  if (error){ console.warn(error); return []; }
+  return (data || []).map(r => ({
+    draft:false, person: r.people ? r.people.name : "(unknown)", mode: r.mode,
+    supporter: r.answered_by || "", ts: r.taken_at, composite: r.composite,
+    coverage: r.coverage, domains: r.domains || {}, flags: r.flags || [], answers: r.answers || [] }));
+}
+
+/* ---- auth gate UI ---- */
+function setNavEnabled(on){
+  document.querySelector("header nav").style.display = on ? "" : "none";
+}
+function renderAuth(tab){
+  setNavEnabled(false);
+  document.getElementById("dash").style.display = "none";
+  const isUp = tab === "signup";
+  document.getElementById("assess").innerHTML = `
+  <div class="authwrap">
+    <div class="tabrow">
+      <button class="${!isUp?"on":""}" onclick="renderAuth('signin')">Sign in</button>
+      <button class="${isUp?"on":""}" onclick="renderAuth('signup')">Create account</button>
+    </div>
+    <div class="card">
+      <div class="field"><label>Email</label><input id="auEmail" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input id="auPass" type="password" placeholder="At least 6 characters"></div>
+      <div class="controls"><span></span>
+        <button class="primary" onclick="doAuth(${isUp})">${isUp?"Create account":"Sign in"}</button></div>
+      <div id="auMsg" class="authmsg"></div>
+    </div>
+  </div>`;
+}
+async function doAuth(isUp){
+  const email = document.getElementById("auEmail").value.trim();
+  const pass = document.getElementById("auPass").value;
+  const msg = document.getElementById("auMsg");
+  msg.className = "authmsg"; msg.textContent = "Working...";
+  const fn = isUp ? sb.auth.signUp({ email, password: pass })
+                  : sb.auth.signInWithPassword({ email, password: pass });
+  const { data, error } = await fn;
+  if (error){ msg.className = "authmsg err"; msg.textContent = error.message; return; }
+  if (isUp && !data.session){ msg.className = "authmsg ok"; msg.textContent = "Check your email to confirm, then sign in."; return; }
+  await onSignedIn();
+}
+async function signOut(){ await sb.auth.signOut(); HH = null; renderAuth("signin"); }
+
+async function onSignedIn(){
+  try { await ensureHousehold(); }
+  catch(e){ console.warn("household bootstrap failed", e); }
+  setNavEnabled(true);
+  renderIntro();
+}
+
+/* ---- boot: gate the app behind auth ---- */
+(async function boot(){
+  const { data } = await sb.auth.getSession();
+  if (data && data.session){ await onSignedIn(); }
+  else { renderAuth("signin"); }
+})();
+</script>
+</body>
+</html>
